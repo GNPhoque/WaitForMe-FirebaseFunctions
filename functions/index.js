@@ -41,14 +41,15 @@ exports.sendMail = functions.https.onRequest((req, res) => {
                 return res.send(erro.toString());
             }
             return res.send('Sended');
-        });
+				});
     });    
 });
 
-
-// // Create and Deploy Your First Cloud Functions
-// // https://firebase.google.com/docs/functions/write-firebase-functions
-//
-// exports.helloWorld = functions.https.onRequest((request, response) => {
-//  response.send("Hello from Firebase!");
-// });
+exports.testIp = functions.https.onRequest((req, res) => {
+    cors(req, res, () => {  
+        // returning result
+				if(req.headers['x-appengine-user-ip'] || req.header['x-forwarded-for'] || req.connection.remoteAddress == "92.154.2.217")
+				return res.send(`IP ACCEPTED : ${req.headers['x-appengine-user-ip'] || req.header['x-forwarded-for'] || req.connection.remoteAddress}`)
+				return res.send(`IP REJECTED : ${req.headers['x-appengine-user-ip'] || req.header['x-forwarded-for'] || req.connection.remoteAddress}`);
+    });    
+});
