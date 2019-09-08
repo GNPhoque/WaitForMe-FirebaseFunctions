@@ -6,6 +6,99 @@ const crypto = require('crypto');
 
 admin.initializeApp();
 
+const express = require('express');
+const cookieParser = require('cookie-parser')();
+const app = express();
+
+
+
+
+
+const validateFirebaseIdToken = async (req, res, next) => {
+    console.log('Check if request is authorized with Firebase ID token');
+  
+    if ((!req.headers.authorization || !req.headers.authorization.startsWith('Bearer ')) &&
+        !(req.cookies && req.cookies.__session)) {
+      console.error('No Firebase ID token was passed as a Bearer token in the Authorization header.',
+          'Make sure you authorize your request by providing the following HTTP header:',
+          'Authorization: Bearer <Firebase ID Token>',
+          'or by passing a "__session" cookie.');
+      res.status(403).send('Unauthorized');
+      return;
+    }
+  
+    let idToken;
+    if (req.headers.authorization && req.headers.authorization.startsWith('Bearer ')) {
+      console.log('Found "Authorization" header');
+      // Read the ID Token from the Authorization header.
+      idToken = req.headers.authorization.split('Bearer ')[1];
+    } else if(req.cookies) {
+      console.log('Found "__session" cookie');
+      // Read the ID Token from cookie.
+      idToken = req.cookies.__session;
+    } else {
+      // No cookie
+      res.status(403).send('Unauthorized');
+      return;
+    }
+  
+    try {
+      const decodedIdToken = await admin.auth().verifyIdToken(idToken);
+      console.log('ID Token correctly decoded', decodedIdToken);
+      req.user = decodedIdToken;
+      next();
+      return;
+    } catch (error) {
+      console.error('Error while verifying Firebase ID token:', error);
+      res.status(403).send('Unauthorized');
+      return;
+    }
+  };
+  
+  app.use(cors);
+  app.use(cookieParser);
+  app.use(validateFirebaseIdToken);
+  app.get('/hello', (req, res) => {
+    res.send(`Hello ${req.user.name}`);
+  });
+  
+  // This HTTPS endpoint can only be accessed by your Firebase Users.
+  // Requests need to be authorized by providing an `Authorization` HTTP header
+  // with value `Bearer <Firebase ID Token>`.
+  exports.app = functions.https.onRequest(app);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 const database = admin.database();
 
 const transporter = nodemailer.createTransport({
@@ -49,6 +142,12 @@ testIp = (req) => {
             return req.headers['x-appengine-user-ip'] || req.header['x-forwarded-for'] || req.connection.remoteAddress == "92.154.2.217";
 }
 
+exports.signIn = functions.https.onRequest((req, res) => {
+    cors((req, res) => {
+        functions.si
+    })
+})
+
 //TEST RETURN VALUE
 exports.sendActivateAccountMail = functions.auth.user().onCreate((user) => {
     console.log(`EmailVerified = ${user.emailVerified}`);
@@ -76,7 +175,7 @@ exports.sendActivateAccountMail = functions.auth.user().onCreate((user) => {
         });
 })
 
-//Confirm uesr mail
+//Confirm user mail
 exports.confirmMail = functions.https.onRequest((req, res) => {
     cors(req,res,()=>{
         console.log('inCors');
